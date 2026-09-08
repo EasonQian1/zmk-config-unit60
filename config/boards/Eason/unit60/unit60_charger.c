@@ -23,7 +23,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led_strip.h>
 #include <zephyr/logging/log.h>
-#include <zmk/usb.h>
+#include <zephyr/usb/usb_device.h>
 
 LOG_MODULE_REGISTER(unit60_charger, LOG_LEVEL_INF);
 
@@ -81,7 +81,8 @@ static void charger_work_handler(struct k_work *work)
 	 */
 	int val = gpio_pin_get_dt(&chg_pin);
 	bool chg_active = (val == 1);
-	bool usb_powered = zmk_usb_is_powered();
+	enum usb_dc_status_code usb_st = usb_get_status();
+	bool usb_powered = (usb_st != USB_DC_DISCONNECTED && usb_st != USB_DC_ERROR);
 
 	enum charge_state new_state;
 
