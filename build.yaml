@@ -1,0 +1,5 @@
+# This file generates the GitHub Actions matrix.
+# Only the rev_e firmware is built in this repo.
+---
+include:
+  - board: unit60@rev_e

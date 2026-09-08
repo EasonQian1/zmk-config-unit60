@@ -1,0 +1,20 @@
+file_format: "1"
+id: unit60
+name: unit60
+type: board
+arch: arm
+features:
+  - keys
+  - underglow
+  - battery
+  - studio
+outputs:
+  - usb
+  - ble
+revisions:
+  - A
+  - B
+  - C
+  - D
+  - E
+default_revision: E
