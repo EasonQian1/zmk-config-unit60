@@ -6,13 +6,13 @@
  * BQ24075 charging status monitor for unit60
  *
  * Hardware:
- *   BQ24075 CHG (open-drain, active-low) → E73 pin 6 = P1.13, 10k series
+ *   BQ24075 CHG (open-drain, active-low) -> E73 pin 6 = P1.13, 10k series
  *   External pull-up required on CHG line
  *
  * Behavior (WS2812 single LED, shared with zmk-rgbled-widget):
- *   Charging   (CHG=low):            red solid   — override widget continuously
- *   Full       (CHG=high + USB in):  green solid — 3s, then restore widget
- *   Discharging(CHG=high, no USB):   —           — no override, widget controls
+ *   Charging   (CHG=low):            red solid   - override widget continuously
+ *   Full       (CHG=high + USB in):  green solid - 3s, then restore widget
+ *   Discharging(CHG=high, no USB):   -           - no override, widget controls
  *
  * Priority: charging red > widget auto states (matches status plan level 4)
  */
@@ -23,7 +23,21 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led_strip.h>
 #include <zephyr/logging/log.h>
-#include <zephyr/usb/usb_device.h>
+
+/* nRF52840 USBD USBREGSTATUS register - hardware VBUS detection.
+ * Bit 0 (VBUSDETECT): 1 = VBUS present (USB cable plugged in).
+ * No Zephyr USB API dependency, works on Zephyr 4.x.
+ */
+#define NRF_USBD_BASE            0x40027000UL
+#define USBD_USBREGSTATUS_OFF    0x438UL
+#define USBD_USBREGSTATUS        (*(volatile uint32_t *)(NRF_USBD_BASE + USBD_USBREGSTATUS_OFF))
+#define USBD_VBUSDETECT_Pos      0
+#define USBD_VBUSDETECT_Msk      (1UL << USBD_VBUSDETECT_Pos)
+
+static bool usb_vbus_present(void)
+{
+	return (USBD_USBREGSTATUS & USBD_VBUSDETECT_Msk) != 0;
+}
 
 LOG_MODULE_REGISTER(unit60_charger, LOG_LEVEL_INF);
 
@@ -81,8 +95,7 @@ static void charger_work_handler(struct k_work *work)
 	 */
 	int val = gpio_pin_get_dt(&chg_pin);
 	bool chg_active = (val == 1);
-	enum usb_dc_status_code usb_st = usb_get_status();
-	bool usb_powered = (usb_st != USB_DC_DISCONNECTED && usb_st != USB_DC_ERROR);
+	bool usb_powered = usb_vbus_present();
 
 	enum charge_state new_state;
 
@@ -163,4 +176,4 @@ static int unit60_charger_init(void)
 	return 0;
 }
 
-SYS_INIT(unit60_charger, APPLICATION, 90);
+SYS_INIT(unit60_charger_init, APPLICATION, 90);
