@@ -10,11 +10,22 @@
  *   External pull-up required on CHG line
  *
  * Behavior (WS2812 single LED, shared with zmk-rgbled-widget):
- *   Charging   (CHG=low):            red solid   - override widget continuously
- *   Full       (CHG=high + USB in):  green solid - 3s, then restore widget
- *   Discharging(CHG=high, no USB):   -           - no override, widget controls
+ *   Trigger: USB plug-in event (transition from no-USB to USB-present)
  *
- * Priority: charging red > widget auto states (matches status plan level 4)
+ *   If battery charging (CHG=low):
+ *     1. Orange slow blink (1Hz) for 3s  -> "charging"
+ *     2. Off (brief transition)
+ *     3. Green blink (1Hz) for 3s       -> "USB wired mode connected"
+ *     4. Off, restore widget control
+ *
+ *   If battery full (CHG=high + USB present):
+ *     1. Green solid for 3s              -> "fully charged"
+ *     2. Off, restore widget control
+ *
+ *   During ongoing charging / full state: no持续 override, widget controls.
+ *   On USB unplug: immediately stop any sequence, restore widget.
+ *
+ * Poll interval: 100ms (1 tick = 100ms, 30 ticks = 3s)
  */
 
 #include <zephyr/kernel.h>
@@ -52,16 +63,22 @@ static const struct gpio_dt_spec chg_pin = {
 #define LED_STRIP_NODE DT_ALIAS(status_ws2812)
 static const struct device *led_strip;
 
-/* ---- Charge states ---- */
-enum charge_state {
-	STATE_DISCHARGING,
-	STATE_CHARGING,
-	STATE_FULL,
+/* ---- Sequence state machine ---- */
+enum sequence_state {
+	SEQ_IDLE,            /* no active sequence, widget controls LED */
+	SEQ_CHARGING_ORANGE, /* orange slow blink = charging (3s) */
+	SEQ_USB_GREEN_BLINK, /* green blink = USB wired mode (3s) */
+	SEQ_FULL_GREEN,      /* green solid = full charge (3s) */
 };
 
-static enum charge_state current_state = STATE_DISCHARGING;
-static bool full_indicator_active = false;
+static enum sequence_state seq_state = SEQ_IDLE;
+static int seq_ticks = 0;          /* 1 tick = 100ms */
+static bool prev_usb_powered = false;
 static bool initialized = false;
+
+/* Sequence timing constants (in 100ms ticks) */
+#define SEQ_DURATION_3S   30   /* 3 seconds */
+#define BLINK_HALF_PERIOD 5    /* 500ms on / 500ms off = 1Hz */
 
 /* Write a single RGB pixel to the WS2812 strip (overrides widget) */
 static void set_led_color(uint8_t r, uint8_t g, uint8_t b)
@@ -74,13 +91,13 @@ static void set_led_color(uint8_t r, uint8_t g, uint8_t b)
 	led_strip_update_rgb(led_strip, &pixel, 1);
 }
 
-/* Called 3s after entering FULL state: stop green override */
-static void full_indicator_off(struct k_work *work)
+/* Turn off LED override (let widget take over) */
+static void release_widget(void)
 {
-	full_indicator_active = false;
-	LOG_INF("Full charge indicator ended, restoring widget control");
+	set_led_color(0, 0, 0);
+	seq_state = SEQ_IDLE;
+	seq_ticks = 0;
 }
-K_WORK_DELAYABLE_DEFINE(full_work, full_indicator_off);
 
 /* Main poll worker: runs every 100ms */
 static void charger_work_handler(struct k_work *work)
@@ -97,43 +114,79 @@ static void charger_work_handler(struct k_work *work)
 	bool chg_active = (val == 1);
 	bool usb_powered = usb_vbus_present();
 
-	enum charge_state new_state;
+	/* ---- Detect USB plug-in event (transition no-USB -> USB) ---- */
+	if (usb_powered && !prev_usb_powered) {
+		LOG_INF("USB plugged in (CHG_phys=%d, charging=%s)",
+			val, chg_active ? "yes" : "no");
 
-	if (chg_active) {
-		new_state = STATE_CHARGING;
-	} else if (usb_powered) {
-		new_state = STATE_FULL;
-	} else {
-		new_state = STATE_DISCHARGING;
-	}
-
-	if (new_state != current_state) {
-		current_state = new_state;
-		LOG_INF("Charge state -> %s (CHG_phys=%d usb=%d)",
-			new_state == STATE_CHARGING ? "CHARGING" :
-			new_state == STATE_FULL ? "FULL" : "DISCHARGING",
-			val, usb_powered);
-
-		if (new_state == STATE_FULL) {
-			/* Green solid for 3 seconds, then restore widget */
-			full_indicator_active = true;
-			k_work_reschedule(&full_work, K_SECONDS(3));
-		} else if (new_state == STATE_CHARGING) {
-			/* Cancel any pending full-indicator timeout */
-			k_work_cancel_delayable(&full_work);
-			full_indicator_active = false;
+		if (chg_active) {
+			/* Battery charging: orange blink 3s -> green blink 3s */
+			seq_state = SEQ_CHARGING_ORANGE;
+			seq_ticks = 0;
+			LOG_INF("Sequence: charging orange blink (3s)");
+		} else {
+			/* Battery full: green solid 3s */
+			seq_state = SEQ_FULL_GREEN;
+			seq_ticks = 0;
+			LOG_INF("Sequence: full green solid (3s)");
 		}
 	}
 
-	/* Continuously override LED while charging (widget tick is 125ms,
-	 * we write every 100ms so red always wins).
-	 */
-	if (current_state == STATE_CHARGING) {
-		set_led_color(200, 0, 0); /* red */
-	} else if (full_indicator_active) {
-		set_led_color(0, 200, 0); /* green */
+	/* ---- If USB unplugged mid-sequence, abort immediately ---- */
+	if (!usb_powered && seq_state != SEQ_IDLE) {
+		LOG_INF("USB unplugged mid-sequence, releasing widget");
+		release_widget();
 	}
-	/* else: do not write, widget resumes control */
+
+	prev_usb_powered = usb_powered;
+
+	/* ---- Sequence state machine ---- */
+	switch (seq_state) {
+	case SEQ_CHARGING_ORANGE:
+		/* Orange slow blink (1Hz) for 3 seconds */
+		if ((seq_ticks % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
+			set_led_color(255, 140, 0); /* orange */
+		} else {
+			set_led_color(0, 0, 0);     /* off */
+		}
+		seq_ticks++;
+		if (seq_ticks >= SEQ_DURATION_3S) {
+			seq_state = SEQ_USB_GREEN_BLINK;
+			seq_ticks = 0;
+			set_led_color(0, 0, 0); /* brief off transition */
+			LOG_INF("Sequence: USB green blink (3s)");
+		}
+		break;
+
+	case SEQ_USB_GREEN_BLINK:
+		/* Green blink (1Hz) for 3 seconds = USB wired mode */
+		if ((seq_ticks % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
+			set_led_color(0, 200, 0); /* green */
+		} else {
+			set_led_color(0, 0, 0);
+		}
+		seq_ticks++;
+		if (seq_ticks >= SEQ_DURATION_3S) {
+			LOG_INF("Sequence complete, releasing widget");
+			release_widget();
+		}
+		break;
+
+	case SEQ_FULL_GREEN:
+		/* Green solid for 3 seconds = fully charged */
+		set_led_color(0, 200, 0);
+		seq_ticks++;
+		if (seq_ticks >= SEQ_DURATION_3S) {
+			LOG_INF("Full indicator complete, releasing widget");
+			release_widget();
+		}
+		break;
+
+	case SEQ_IDLE:
+	default:
+		/* Do not write LED — widget has full control */
+		break;
+	}
 }
 
 K_WORK_DEFINE(charger_work, charger_work_handler);
@@ -172,7 +225,7 @@ static int unit60_charger_init(void)
 	/* Start polling: first check after 500ms, then every 100ms */
 	k_timer_start(&charger_timer, K_MSEC(500), K_MSEC(100));
 
-	LOG_INF("BQ24075 charger monitor initialized (CHG=P1.13, active-low)");
+	LOG_INF("BQ24075 charger monitor initialized (CHG=P1.13, active-low, event-driven sequence)");
 	return 0;
 }
 
