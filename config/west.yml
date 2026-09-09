@@ -2,15 +2,14 @@ manifest:
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    - name: hitsmaxft
-      url-base: https://github.com/hitsmaxft
   projects:
     - name: zmk
       remote: zmkfirmware
       revision: main
       import: app/west.yml
-    - name: zmk-rgbled-widget
-      remote: hitsmaxft
-      revision: main
+    # Note: zmk-rgbled-widget has been localized to config/boards/Eason/unit60/rgbled_widget/
+    # Reason: hitsmaxft main branch uses deprecated zmk_endpoint_get_selected() API,
+    # which is incompatible with latest ZMK main (renamed to zmk_endpoints_selected()).
+    # Local copy has been fixed for API compatibility.
   self:
     path: config

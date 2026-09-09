@@ -254,10 +254,15 @@ zmk-eason60-rev_e/
 - 插线后 3 秒内写 LED（充电中橙色慢闪 / 充满绿色常亮），之后完全停写归还 widget
 - 拔线立即停写
 
-### 2. zmk-rgbled-widget（外部模块，hitsmaxft fork）
+### 2. rgbled_widget（本地源码，已修复 ZMK main API 兼容）
 
-基于 [hitsmaxft/zmk-rgbled-widget](https://github.com/hitsmaxft/zmk-rgbled-widget) fork（支持 WS2812），通过 west.yml 作为外部模块引用：
+基于 [hitsmaxft/zmk-rgbled-widget](https://github.com/hitsmaxft/zmk-rgbled-widget) fork（支持 WS2812），已本地化到 `config/boards/Eason/unit60/rgbled_widget/`：
 
+**修复内容：**
+- `zmk_endpoint_get_selected()` → `zmk_endpoints_selected()`（2 处，ZMK main 已改名，新 API 返回指针）
+- 移除 west.yml 外部模块引用，改为本地编译，避免 API 不兼容导致蓝牙指示失效
+
+**功能：**
 - 支持 WS2812 SPI 驱动（单颗 LED，所有状态共享索引 0）
 - 支持动画（呼吸脉冲/闪烁/常亮）
 - 蓝牙 5 通道统一蓝色，广告/配对状态呼吸 30 秒
