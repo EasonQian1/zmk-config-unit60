@@ -8,3 +8,6 @@ config BOARD_UNIT60
     imply RETAINED_MEM
     imply RETENTION
     imply RETENTION_BOOT_MODE
+
+# 本地 rgbled_widget 配置选项（已适配 ph-design/zmks 分支）
+rsource "rgbled_widget/Kconfig"

@@ -4,15 +4,10 @@ manifest:
       url-base: https://github.com/zmkfirmware
     - name: ph-design
       url-base: https://github.com/ph-design
-    - name: hitsmaxft
-      url-base: https://github.com/hitsmaxft
   projects:
     - name: zmk
       remote: ph-design
       revision: main
       import: app/west.yml
-    - name: zmk-rgbled-widget
-      remote: hitsmaxft
-      revision: main
   self:
     path: config
