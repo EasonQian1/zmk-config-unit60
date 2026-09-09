@@ -66,7 +66,7 @@
 			, <&key_physical_attrs 100 100 1325  300       0     0     0>   // , (shifted +25)
 			, <&key_physical_attrs 100 100 1425  300       0     0     0>   // . (shifted +25)
 
-			, <&key_physical_attrs 100 100 1200  300       0     0     0>   // Up arrow (unchanged)
+			, <&key_physical_attrs 100 100 1200  325       0     0     0>   // Up arrow (shifted down +25)
 
 			, <&key_physical_attrs 125 100  125  425       0     0     0>   // Ctrl (1.25U, shifted +25)
 			, <&key_physical_attrs 125 100  250  425       0     0     0>   // Alt (1.25U, shifted +25)
