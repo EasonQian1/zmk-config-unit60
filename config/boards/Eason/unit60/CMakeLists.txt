@@ -1,14 +1,5 @@
 # 三色 LED 已移除，原 unit60_led.c（蓝牙 profile 颜色指示）不再编译
-# 全部状态指示由 WS2812 单颗承担（本地 rgbled_widget + 自定义充电检测）
+# 全部状态指示由 WS2812 单颗承担（hitsmaxft/zmk-rgbled-widget + 自定义充电检测）
 
 # BQ24075 充电状态检测（CHG → P1.13）
 zephyr_library_sources(unit60_charger.c)
-
-# 本地 rgbled_widget（已适配 ph-design/zmks 分支 API）
-# zmks 分支中 zmk/app/include 不在默认 include 路径，需手动添加
-# behavior_rgbled_widget.c 不编译：该行为未被使用，且 zmks 分支行为驱动 API 不兼容
-zephyr_library_include_directories(${CMAKE_SOURCE_DIR}/include)
-zephyr_library_sources(
-    rgbled_widget/src/widget.c
-)
-zephyr_library_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rgbled_widget/include)

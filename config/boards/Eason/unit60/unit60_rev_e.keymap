@@ -4,16 +4,6 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
-    combos {
-        compatible = "zmk,combos";
-        /* 示例组合键：Q+W=Esc，可在 ZMK Studio 中删除或修改 */
-        combo_esc_demo {
-            timeout-ms = <50>;
-            key-positions = <16 17>;
-            bindings = <&kp ESC>;
-        };
-    };
-
     keymap {
         compatible = "zmk,keymap";
         default_layer {
