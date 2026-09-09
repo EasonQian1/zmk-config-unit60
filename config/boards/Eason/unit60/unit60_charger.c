@@ -3,36 +3,27 @@
  *
  * SPDX-License-Identifier: MIT
  *
- * BQ24075 charging status + low battery monitor for unit60
+ * BQ24075 charging status indicator for unit60
  *
  * Hardware:
  *   BQ24075 CHG (open-drain, active-low) -> E73 pin 6 = P1.13, 10k series
  *   External pull-up required on CHG line
- *   MAX17048 fuel gauge (I2C) for battery percentage
  *
  * Behavior (WS2812 single LED, shared with zmk-rgbled-widget):
  *
- *   Priority 1 (highest): Plug-in indicators
+ *   USB plug-in event (transition no-USB -> USB):
+ *     If charging (CHG=low):
+ *       Orange slow blink (1Hz) for 3s -> "charging"
+ *       Then off, charger stops writing LED, widget takes over.
+ *     If full (CHG=high):
+ *       Green solid for 3s -> "full / USB connected"
+ *       Then off, charger stops writing LED, widget takes over.
  *
- *     A. Charging (CHG=low + USB present):
- *        - Orange slow blink (1Hz) for 3s  -> "charging in progress"
- *        - Green blink (1Hz) for 3s        -> "USB wired mode connected"
- *        - Then off, restore widget control
+ *   After the 3s indicator: charger does NOT write LED at all.
+ *   All other states (low battery, FN layer, Caps, BLE, etc.)
+ *   are handled entirely by zmk-rgbled-widget.
  *
- *     B. Full / USB powered (CHG=high + USB present):
- *        - Green solid CONTINUOUSLY        -> "fully charged / USB mode"
- *        - Stays on as long as USB is plugged in and battery is full
- *
- *   Priority 2: Low battery (< 20%)
- *     Red slow blink (1Hz) continuously, overrides widget.
- *     Only shown when no plug-in indicator is active.
- *     (Note: full state implies >20%, so no conflict with full green.)
- *
- *   Priority 3: Widget auto states
- *     All other times: do not write LED, widget controls (FN/Caps/BLE/etc).
- *     Normal battery colors (>20%) are NOT shown.
- *
- *   On USB unplug: immediately stop any indicator, then check low battery.
+ *   On USB unplug: immediately stop any indicator, charger goes idle.
  *
  * Poll interval: 100ms (1 tick = 100ms, 30 ticks = 3s)
  */
@@ -59,11 +50,6 @@ static bool usb_vbus_present(void)
 	return (USBD_USBREGSTATUS & USBD_VBUSDETECT_Msk) != 0;
 }
 
-/* ZMK battery percentage API (manually declared to avoid private header path).
- * Returns 0-100. Defined in zmk/app/src/battery.c.
- */
-extern uint8_t zmk_battery_state_of_charge(void);
-
 LOG_MODULE_REGISTER(unit60_charger, LOG_LEVEL_INF);
 
 /* ---- BQ24075 CHG pin: P1.13, active-low open-drain ---- */
@@ -77,21 +63,17 @@ static const struct gpio_dt_spec chg_pin = {
 #define LED_STRIP_NODE DT_ALIAS(status_ws2812)
 static const struct device *led_strip;
 
-/* ---- State machine ---- */
+/* ---- Simple state machine ---- */
 enum charger_state {
-	STATE_IDLE,             /* no active indicator, widget or low-battery controls */
-	STATE_CHARGING_ORANGE,  /* orange slow blink = charging (first 3s after plug-in) */
-	STATE_USB_GREEN_BLINK,  /* green blink = USB wired mode (next 3s after charging) */
-	STATE_FULL_GREEN,        /* green solid CONTINUOUSLY = full + USB plugged in */
+	STATE_IDLE,             /* charger not writing LED, widget controls */
+	STATE_CHARGING_ORANGE,  /* orange slow blink = charging (3s after plug-in) */
+	STATE_FULL_GREEN,        /* green solid = full / USB connected (3s after plug-in) */
 };
 
 static enum charger_state current_state = STATE_IDLE;
 static int state_ticks = 0;        /* 1 tick = 100ms */
 static bool prev_usb_powered = false;
 static bool initialized = false;
-
-/* Low battery threshold */
-#define LOW_BATTERY_THRESHOLD  20   /* percent */
 
 /* Timing constants (in 100ms ticks) */
 #define DURATION_3S            30   /* 3 seconds */
@@ -108,7 +90,7 @@ static void set_led_color(uint8_t r, uint8_t g, uint8_t b)
 	led_strip_update_rgb(led_strip, &pixel, 1);
 }
 
-/* Transition to IDLE and turn off LED override */
+/* Transition to IDLE: turn off LED and stop writing (widget takes over) */
 static void go_idle(void)
 {
 	set_led_color(0, 0, 0);
@@ -137,32 +119,30 @@ static void charger_work_handler(struct k_work *work)
 			val, chg_active ? "yes" : "no");
 
 		if (chg_active) {
-			/* Battery charging: orange blink 3s -> green blink 3s */
+			/* Battery charging: orange blink 3s */
 			current_state = STATE_CHARGING_ORANGE;
 			state_ticks = 0;
-			LOG_INF("State: CHARGING_ORANGE (3s)");
+			LOG_INF("Indicator: charging orange blink (3s)");
 		} else {
-			/* Battery full: green solid continuously */
+			/* Battery full / USB only: green solid 3s */
 			current_state = STATE_FULL_GREEN;
 			state_ticks = 0;
-			LOG_INF("State: FULL_GREEN (continuous)");
+			LOG_INF("Indicator: full green solid (3s)");
 		}
 	}
 
 	/* ---- Detect USB unplug event ---- */
 	if (!usb_powered && prev_usb_powered) {
-		LOG_INF("USB unplugged, going idle");
+		LOG_INF("USB unplugged, charger going idle");
 		go_idle();
 	}
 
 	prev_usb_powered = usb_powered;
 
-	/* ---- State machine (Priority 1: plug-in indicators) ---- */
-	bool indicator_active = (current_state != STATE_IDLE);
-
+	/* ---- State machine (charger only writes LED during 3s indicator) ---- */
 	switch (current_state) {
 	case STATE_CHARGING_ORANGE:
-		/* Orange slow blink (1Hz) for 3 seconds = charging in progress */
+		/* Orange slow blink (1Hz) for 3 seconds = charging */
 		if ((state_ticks % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
 			set_led_color(255, 140, 0); /* orange */
 		} else {
@@ -170,65 +150,25 @@ static void charger_work_handler(struct k_work *work)
 		}
 		state_ticks++;
 		if (state_ticks >= DURATION_3S) {
-			current_state = STATE_USB_GREEN_BLINK;
-			state_ticks = 0;
-			set_led_color(0, 0, 0); /* brief off transition */
-			LOG_INF("State: USB_GREEN_BLINK (3s)");
-		}
-		break;
-
-	case STATE_USB_GREEN_BLINK:
-		/* Green blink (1Hz) for 3 seconds = USB wired mode */
-		if ((state_ticks % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
-			set_led_color(0, 200, 0); /* green */
-		} else {
-			set_led_color(0, 0, 0);
-		}
-		state_ticks++;
-		if (state_ticks >= DURATION_3S) {
-			LOG_INF("USB indicator complete, going idle");
+			LOG_INF("Charging indicator complete, charger going idle");
 			go_idle();
 		}
 		break;
 
 	case STATE_FULL_GREEN:
-		/* Green solid CONTINUOUSLY = fully charged + USB plugged in */
+		/* Green solid for 3 seconds = full / USB connected */
 		set_led_color(0, 200, 0);
-		/* Stay in this state as long as USB is plugged in and CHG=high.
-		 * If CHG goes low (battery starts draining despite USB?), go idle.
-		 */
-		if (chg_active) {
-			LOG_INF("CHG went low while in FULL state, going idle");
+		state_ticks++;
+		if (state_ticks >= DURATION_3S) {
+			LOG_INF("Full indicator complete, charger going idle");
 			go_idle();
 		}
 		break;
 
 	case STATE_IDLE:
 	default:
-		/* Do not write LED here — handled below by low battery check */
+		/* Do NOT write LED here. Widget has full control. */
 		break;
-	}
-
-	/* ---- Low battery indicator (Priority 2) ----
-	 * Only active when no plug-in indicator is running.
-	 * Red slow blink (1Hz) continuously when battery < 20%.
-	 * Note: FULL_GREEN implies battery >20%, so no conflict.
-	 */
-	if (!indicator_active) {
-		uint8_t battery = zmk_battery_state_of_charge();
-
-		if (battery < LOW_BATTERY_THRESHOLD) {
-			/* Red slow blink (1Hz) */
-			int tick_100ms = k_uptime_get_32() / 100;
-			if ((tick_100ms % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
-				set_led_color(200, 0, 0); /* red */
-			} else {
-				set_led_color(0, 0, 0);   /* off */
-			}
-		}
-		/* else: battery >= 20%, do NOT show battery color.
-		 * Widget controls all other states (FN/Caps/BLE/etc).
-		 */
 	}
 }
 
@@ -268,9 +208,7 @@ static int unit60_charger_init(void)
 	/* Start polling: first check after 500ms, then every 100ms */
 	k_timer_start(&charger_timer, K_MSEC(500), K_MSEC(100));
 
-	LOG_INF("BQ24075 charger + low battery monitor initialized "
-		"(CHG=P1.13, low_bat_threshold=%d%%, full=continuous green)",
-		LOW_BATTERY_THRESHOLD);
+	LOG_INF("BQ24075 charger indicator initialized (CHG=P1.13, 3s plug-in indicator only)");
 	return 0;
 }
 
