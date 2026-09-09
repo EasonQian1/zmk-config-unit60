@@ -7,7 +7,7 @@ manifest:
   projects:
     - name: zmk
       remote: ph-design
-      revision: main
+      revision: v0.3-lts
       import: app/west.yml
   self:
     path: config
