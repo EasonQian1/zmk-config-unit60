@@ -6,9 +6,9 @@ zephyr_library_sources(unit60_charger.c)
 
 # 本地 rgbled_widget（已适配 ph-design/zmks 分支 API）
 # zmks 分支中 zmk/app/include 不在默认 include 路径，需手动添加
+# behavior_rgbled_widget.c 不编译：该行为未被使用，且 zmks 分支行为驱动 API 不兼容
 zephyr_library_include_directories(${CMAKE_SOURCE_DIR}/include)
 zephyr_library_sources(
     rgbled_widget/src/widget.c
-    rgbled_widget/src/behaviors/behavior_rgbled_widget.c
 )
 zephyr_library_include_directories(${CMAKE_CURRENT_SOURCE_DIR}/rgbled_widget/include)
