@@ -8,3 +8,5 @@ zephyr_library_sources(unit60_charger.c)
 # 修复内容：zmk_endpoint_get_selected() -> zmk_endpoints_selected()（返回指针）
 zephyr_library_sources(rgbled_widget/src/widget.c)
 zephyr_library_include_directories(rgbled_widget/include)
+# ZMK app include path（板卡级编译需要手动添加，否则找不到 zmk/battery.h 等头文件）
+zephyr_library_include_directories(${APPLICATION_SOURCE_DIR}/include)
