@@ -1,7 +1,6 @@
 #define DT_DRV_COMPAT zmk_behavior_rgbled_widget
 
 #include <zephyr/device.h>
-#include <drivers/behavior.h>
 #include <zephyr/logging/log.h>
 
 #include <zmk/behavior.h>

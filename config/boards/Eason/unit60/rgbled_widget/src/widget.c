@@ -7,7 +7,6 @@
 #include <limits.h>
 #include <string.h>
 
-#include <zmk/battery.h>
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
 #include <zmk/usb.h>
@@ -33,6 +32,9 @@
 #include <zephyr/logging/log.h>
 
 #include <zmk_rgbled_widget/widget.h>
+
+/* zmks 分支中 <zmk/battery.h> 不在默认 include 路径，手动声明 */
+uint8_t zmk_battery_state_of_charge(void);
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
