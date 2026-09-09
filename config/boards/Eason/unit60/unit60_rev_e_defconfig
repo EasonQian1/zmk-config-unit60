@@ -57,7 +57,7 @@ CONFIG_ZMK_SLEEP=y
 CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=1800000
 
 # === WS2812 RGB LED Widget (single LED, all status sharing) ===
-# Module: https://github.com/caksoylar/zmk-rgbled-widget
+# Module: https://github.com/hitsmaxft/zmk-rgbled-widget (WS2812-enabled fork)
 # Status plan: 蓝=蓝牙 / 绿=正常态 / 红=警告充电 / 黄=FN层 / 白=Caps
 CONFIG_RGBLED_WIDGET=y
 CONFIG_RGBLED_WIDGET_WS2812=y
@@ -67,6 +67,12 @@ CONFIG_RGBLED_WIDGET_ANIMATIONS=y
 CONFIG_RGBLED_WIDGET_LED_SHARING=y
 CONFIG_RGBLED_WIDGET_BRIGHTNESS=128
 CONFIG_RGBLED_WIDGET_SHARE_TIMEOUT_MS=500
+# CRITICAL: all status LEDs must point to index 0 (the only LED)
+# Without these, source code defaults CONN/LAYER to index 1 (second LED) which doesn't exist
+CONFIG_RGBLED_WIDGET_BATTERY_LED_INDEX=0
+CONFIG_RGBLED_WIDGET_CONN_LED_INDEX=0
+CONFIG_RGBLED_WIDGET_CAPSLOCK_LED_INDEX=0
+CONFIG_RGBLED_WIDGET_LAYER_LED_INDEX=0
 
 # Battery status colors: only low battery shows red, high/medium = off (black)
 # Color values: 0=black 1=red 2=green 3=yellow 4=blue 5=magenta 6=cyan 7=white
@@ -88,6 +94,19 @@ CONFIG_RGBLED_WIDGET_CONN_COLOR_CONNECTED=4
 CONFIG_RGBLED_WIDGET_CONN_COLOR_ADVERTISING=4
 CONFIG_RGBLED_WIDGET_CONN_COLOR_DISCONNECTED=4
 CONFIG_RGBLED_WIDGET_CONN_COLOR_USB=2
+# Per-channel colors (WS2812 enhanced mode): all channels = blue
+# Color index: 0=black 1=red 2=green 3=yellow 4=blue 5=magenta 6=cyan 7=white
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT0=4
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT1=4
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT2=4
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT3=4
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT4=4
+CONFIG_RGBLED_WIDGET_CONN_COLOR_BT_FALLBACK=4
+# Advertising/pairing duration: 30 seconds (breathing pulse)
+CONFIG_RGBLED_WIDGET_CONN_ADV_DURATION_MS=30000
+# Connected/disconnected indicator duration
+CONFIG_RGBLED_WIDGET_CONN_CONNECTED_DURATION_MS=3000
+CONFIG_RGBLED_WIDGET_CONN_DISCONNECTED_DURATION_MS=3000
 
 # Layer colors: base=off, all FN layers=yellow (constant on while active)
 CONFIG_RGBLED_WIDGET_SHOW_LAYER_COLORS=y
