@@ -80,24 +80,10 @@
     fuelgauge: max17048@36 {
         compatible = "zmk,maxim-max17048";
         reg = <0x36>;
-        /* Battery voltage-to-percentage mapping for 4400mAh Li-ion (3.7V nominal)
-         * Format: <voltage_uV percent voltage_uV percent ...>
-         * Adjust based on actual battery discharge curve if readings are inaccurate.
+        /* Note: ZMK's maxim-max17048 driver does not support zephyr,user-mapping.
+         * Battery SOC is calculated by MAX17048 hardware algorithm (voltage + internal resistance learning).
+         * Calibration is done automatically by the chip after a full charge-discharge cycle.
          */
-        zephyr,user-mapping = <
-            4200000 100
-            4100000 90
-            4000000 80
-            3900000 70
-            3800000 60
-            3700000 50
-            3600000 40
-            3500000 30
-            3400000 20
-            3300000 10
-            3200000 5
-            3000000 0
-        >;
     };
 };
 
