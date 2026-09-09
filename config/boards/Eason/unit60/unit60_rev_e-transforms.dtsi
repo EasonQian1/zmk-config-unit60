@@ -16,7 +16,7 @@
 #include <dt-bindings/zmk/matrix_transform.h>
 
 / {
-    transforms {
+    default_transform: transforms {
         compatible = "zmk,matrix-transform";
         columns = <7>;
         rows = <10>;
