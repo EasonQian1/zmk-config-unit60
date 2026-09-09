@@ -9,4 +9,5 @@ zephyr_library_sources(unit60_charger.c)
 zephyr_library_sources(rgbled_widget/src/widget.c)
 zephyr_library_include_directories(rgbled_widget/include)
 # ZMK app include path（板卡级编译需要手动添加，否则找不到 zmk/battery.h 等头文件）
-zephyr_library_include_directories(${APPLICATION_SOURCE_DIR}/include)
+# CMAKE_SOURCE_DIR 在 ZMK 构建里指向 zmk/app
+zephyr_library_include_directories(${CMAKE_SOURCE_DIR}/include)
