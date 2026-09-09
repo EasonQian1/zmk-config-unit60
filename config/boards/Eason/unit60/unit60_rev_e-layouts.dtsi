@@ -21,8 +21,8 @@
 			, <&key_physical_attrs 100 100 1000    0       0     0     0>   // 0
 			, <&key_physical_attrs 100 100 1100    0       0     0     0>   // -
 			, <&key_physical_attrs 100 100 1200    0       0     0     0>   // =
-			, <&key_physical_attrs 100 100 1300    0       0     0     0>   // BkSp
-			, <&key_physical_attrs 100 100 1400    0       0     0     0>   // Del
+			, <&key_physical_attrs 100 100 1325    0       0     0     0>   // BkSp (shifted +25)
+			, <&key_physical_attrs 100 100 1425    0       0     0     0>   // Del (shifted +25)
 
 			, <&key_physical_attrs 150 100    0  100       0     0     0>   // Tab (1.5U)
 			, <&key_physical_attrs 100 100  150  100       0     0     0>   // Q
@@ -36,8 +36,8 @@
 			, <&key_physical_attrs 100 100  950  100       0     0     0>   // O
 			, <&key_physical_attrs 100 100 1050  100       0     0     0>   // P
 			, <&key_physical_attrs 150 100 1150  100       0     0     0>   // \ (1.5U)
-			, <&key_physical_attrs 100 100 1300  100       0     0     0>   // [
-			, <&key_physical_attrs 100 100 1400  100       0     0     0>   // ]
+			, <&key_physical_attrs 100 100 1325  100       0     0     0>   // [ (shifted +25)
+			, <&key_physical_attrs 100 100 1425  100       0     0     0>   // ] (shifted +25)
 
 			, <&key_physical_attrs 175 100    0  200       0     0     0>   // Caps (1.75U)
 			, <&key_physical_attrs 100 100  175  200       0     0     0>   // A
@@ -50,8 +50,8 @@
 			, <&key_physical_attrs 100 100  875  200       0     0     0>   // K
 			, <&key_physical_attrs 100 100  975  200       0     0     0>   // L
 			, <&key_physical_attrs 225 100 1075  200       0     0     0>   // Enter (2.25U)
-			, <&key_physical_attrs 100 100 1300  200       0     0     0>   // ;
-			, <&key_physical_attrs 100 100 1400  200       0     0     0>   // '
+			, <&key_physical_attrs 100 100 1325  200       0     0     0>   // ; (shifted +25)
+			, <&key_physical_attrs 100 100 1425  200       0     0     0>   // ' (shifted +25)
 
 			, <&key_physical_attrs 225 100    0  300       0     0     0>   // LShift (2.25U)
 			, <&key_physical_attrs 100 100  225  300       0     0     0>   // Z
@@ -63,18 +63,18 @@
 			, <&key_physical_attrs 100 100  825  300       0     0     0>   // M
 			, <&key_physical_attrs 100 100  925  300       0     0     0>   // /
 			, <&key_physical_attrs 150 100 1025  300       0     0     0>   // RShift (1.5U)
-			, <&key_physical_attrs 100 100 1300  300       0     0     0>   // ,
-			, <&key_physical_attrs 100 100 1400  300       0     0     0>   // .
+			, <&key_physical_attrs 100 100 1325  300       0     0     0>   // , (shifted +25)
+			, <&key_physical_attrs 100 100 1425  300       0     0     0>   // . (shifted +25)
 
-			, <&key_physical_attrs 100 100 1200  300       0     0     0>   // Up arrow (same row as row 4)
+			, <&key_physical_attrs 100 100 1200  300       0     0     0>   // Up arrow (unchanged)
 
-			, <&key_physical_attrs 125 100  125  400       0     0     0>   // Ctrl (1.25U)
-			, <&key_physical_attrs 125 100  250  400       0     0     0>   // Alt (1.25U)
-			, <&key_physical_attrs 600 100  375  400       0     0     0>   // Space (6U)
-			, <&key_physical_attrs 125 100  975  400       0     0     0>   // FN (1.25U)
-			, <&key_physical_attrs 100 100 1100  400       0     0     0>   // Left
-			, <&key_physical_attrs 100 100 1200  400       0     0     0>   // Down
-			, <&key_physical_attrs 100 100 1300  400       0     0     0>   // Right
+			, <&key_physical_attrs 125 100  125  425       0     0     0>   // Ctrl (1.25U, shifted +25)
+			, <&key_physical_attrs 125 100  250  425       0     0     0>   // Alt (1.25U, shifted +25)
+			, <&key_physical_attrs 600 100  375  425       0     0     0>   // Space (6U, shifted +25)
+			, <&key_physical_attrs 125 100  975  425       0     0     0>   // FN (1.25U, shifted +25)
+			, <&key_physical_attrs 100 100 1100  425       0     0     0>   // Left (shifted +25)
+			, <&key_physical_attrs 100 100 1200  425       0     0     0>   // Down (shifted +25)
+			, <&key_physical_attrs 100 100 1300  425       0     0     0>   // Right (shifted +25)
 			;
 	};
 };
