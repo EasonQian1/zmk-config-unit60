@@ -8,6 +8,7 @@ features:
   - underglow
   - battery
   - studio
+  - combos
 outputs:
   - usb
   - ble
