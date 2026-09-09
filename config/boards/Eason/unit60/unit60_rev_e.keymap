@@ -4,6 +4,11 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
+    combos {
+        compatible = "zmk,combos";
+        /* Combos configured at runtime via ZMKs Studio */
+    };
+
     keymap {
         compatible = "zmk,keymap";
         default_layer {
