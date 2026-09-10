@@ -383,6 +383,103 @@ zmk-eason60-rev_e/
 | BQ24075 PGOOD | P0.06 | 电源好，预留未用 |
 | EXT_POWER | P0.30 | WS2812 电源控制 |
 
-## 版权
+## 更新日志
+
+> 按时间倒序排列，最新修改在最上方。
+
+### 2026-09-10 蓝牙性能优化（性能优先）
+- **发射功率**：`CONFIG_BT_CTLR_TX_PWR=8`（nRF52840 最大值 +8 dBm，默认 0 dBm）
+- **低延迟连接参数**：连接间隔从 15-30ms 降低到 7.5-15ms（`MIN_INTERVAL=6`, `MAX_INTERVAL=12`）
+- **2M PHY**：启用 2Mbps 蓝牙 PHY，吞吐翻倍，空口时间减半
+- **数据长度更新**：支持更大数据包，降低每字节延迟
+- **高级控制器功能**：启用 `BT_CTLR_ADVANCED_FEATURES`
+- 注意：性能优先，功耗会增加，电池续航会缩短
+
+### 2026-09-09 本地化 rgbled_widget + API 修复 + Kconfig 合并
+- 将 hitsmaxft/zmk-rgbled-widget 源码本地化到 `config/boards/Eason/unit60/rgbled_widget/`
+- 修复 ZMK main API 兼容：确认正确函数为 `zmk_endpoint_get_selected()`（返回结构体，用 `.` 访问）
+- 修复板卡级编译 include 路径：添加 `${CMAKE_SOURCE_DIR}/include`（ZMK app include 目录）
+- 将 widget Kconfig 完整内容合并到 `Kconfig.unit60`（解决外部模块本地化后 Kconfig 不加载问题）
+- 修复 `SPATIAL_MAPPING` 问题：改为 `y`，让 `*_LED_INDEX` 配置可见，全部设为 0（单颗 LED 共享）
+- 移除 west.yml 外部模块引用，改为本地编译
+
+### 2026-09-09 WS2812 灯光指示逻辑定稿
+- 控制权划分：charger 插线后前 3 秒写 LED，之后完全停写，widget 接管其余所有状态
+- 插线充电：🟠 橙色慢闪 (255,140,0) 1Hz 3 秒 → 熄灭
+- 插线充满：🟢 绿色常亮 (0,200,0) 3 秒 → 熄灭
+- 蓝牙：全部通道统一 🔵 蓝色，广告/配对呼吸 30 秒，已连接常亮 3 秒，断开闪烁 3 秒
+- FN 层：🟡 黄色常亮
+- Caps Lock：⚪ 白色常亮
+- 低电量 <20%：🔴 红色，高/中电量背景颜色已禁用（不显示）
+- 禁用 widget USB 连接提示（由 charger 插线提示替代）
+- 完整指示灯逻辑写入 README（8 个章节）
+
+### 2026-09-09 62 键新布局 + 矩阵重新映射
+- 删除编码器多余键（C_PP），从 63 键改为 62 键
+- 用户提供 62 键 VIA JSON 布局，转换为 ZMK layouts.dtsi
+- 用户逐行提供 7 列 × 10 行矩阵引脚（col2row），写入 transforms.dtsi
+- 键值调整：第二行末尾 \ [ ]，第三行末尾 Enter ; '，第四行末尾 / RShift , . ↑
+- ZMK Studio 布局显示调试（行间距、坐标修正）
+- 键值错位问题最终确认为 ZMK Studio 缓存（恢复出厂设置解决）
+
+### 2026-09-08 BQ24075 充电检测实现
+- 新建 `unit60_charger.c`，读 P1.13（CHG 开漏低有效）+ nRF52840 硬件寄存器 USBREGSTATUS 读 VBUS
+- 三次 API 迭代：`zmk_usb_is_powered()` 失败 → `usb_get_status()` 失败（Zephyr 4.1 已移除）→ 硬件寄存器方案成功
+- charger 只在插线后 3 秒内写 LED，之后完全停写归还 widget，避免两者同时写 LED 冲突闪烁
+
+## 版权与许可
+
+### 版权声明
+
+Copyright (c) 2025 Eason. All rights reserved.
+
+### 许可证
+
+本项目自定义代码（包括但不限于 `unit60_charger.c`、板卡配置文件、键位映射、物理布局等）采用 **MIT License** 开源协议。
+
+```
+MIT License
 
 Copyright (c) 2025 Eason
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### 第三方组件归属
+
+本项目基于或引用以下开源项目，各自保留其原始版权与许可：
+
+| 组件 | 原始作者 / 来源 | 许可证 | 用途 |
+|------|----------------|--------|------|
+| **ZMK Firmware** | [zmkfirmware/zmk](https://github.com/zmkfirmware/zmk) | MIT | 键盘固件主体 |
+| **Zephyr RTOS** | [zephyrproject-rtos/zephyr](https://github.com/zephyrproject-rtos/zephyr) | Apache-2.0 | 底层实时操作系统 |
+| **zmk-rgbled-widget** | [hitsmaxft/zmk-rgbled-widget](https://github.com/hitsmaxft/zmk-rgbled-widget)（fork 自 caksoylar） | MIT | WS2812 单颗 LED 状态指示（已本地化并修复 API 兼容） |
+| **Nordic nRF52840 HAL** | Nordic Semiconductor | BSD-3-Clause | 芯片硬件抽象层 |
+| **MAX17048 驱动** | ZMK Contributors | MIT | 电池电量计驱动 |
+
+### 免责声明
+
+1. 本项目按"原样"提供，不提供任何明示或暗示的担保，包括但不限于对适销性、特定用途适用性和非侵权性的担保。
+2. 使用本固件所造成的任何直接或间接损失（包括但不限于设备损坏、数据丢失、人身伤害等），作者不承担任何责任。
+3. 自行修改、编译、刷入固件的风险由使用者自行承担。
+4. 本项目中涉及的第三方商标、品牌名称（如 Nordic、nRF52840、WS2812、BQ24075、MAX17048 等）归各自所有者所有，仅用于技术描述，不构成任何背书。
+
+### 贡献
+
+欢迎提交 Issue 和 Pull Request。提交代码即表示您同意您的贡献按 MIT License 授权。
