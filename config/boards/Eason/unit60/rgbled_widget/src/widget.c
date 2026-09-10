@@ -620,6 +620,14 @@ static int indicate_battery_enhanced(void) {
 }
 
 static int indicate_connectivity_ws2812(void) {
+    // 【关键修复】在设置蓝牙连接指示之前，先清除层状态LED
+    // 根因：set_led_with_sharing()会把当前颜色保存为base_color，3秒后恢复
+    // 如果层状态LED是黄色(FN黄灯bug)，base_color被保存为黄色，3秒后恢复黄色继续亮
+    // 修复：先清除层状态LED为黑色，确保base_color是黑色，3秒后LED正确熄灭
+#if SHOW_LAYER_COLORS
+    ws2812_clear_status_led(STATUS_LAYER);
+#endif
+
     uint8_t color_idx = 0;
     struct animation_state pattern = {0};
     int ret = 0;
@@ -701,8 +709,9 @@ switch (profile_index) {
 
     // 【关键修复】蓝牙连接/切换设备后强制刷新层颜色，避免偶发FN层黄灯常亮bug
     // 根因：连接事件触发Activity恢复时，zmk_keymap_highest_layer_active()可能瞬间返回错误值，导致led_layer_color被错误设置为FN层黄色
-    // 修复：连接指示完成后主动调用update_layer_color()，重新检测当前层并刷新颜色
+    // 修复：先清除层状态LED，再主动调用update_layer_color()重新检测当前层并刷新颜色
 #if SHOW_LAYER_COLORS
+    ws2812_clear_status_led(STATUS_LAYER);
     update_layer_color();
 #endif
 
@@ -1560,20 +1569,17 @@ ZMK_SUBSCRIPTION(led_capslock_listener, zmk_hid_indicators_changed);
 void update_layer_color(void) {
     uint8_t index = zmk_keymap_highest_layer_active();
 
-    if (led_layer_color != layer_color_idx[index]) {
-        led_layer_color = layer_color_idx[index];
+    // 【关键修复】去掉条件判断，每次都强制刷新层颜色，避免偶发FN层黄灯常亮bug
+    led_layer_color = layer_color_idx[index];
 
 #if IS_ENABLED(CONFIG_RGBLED_WIDGET_WS2812)
-        // Use enhanced layer color with persistent display
-        set_status_led(STATUS_LAYER, led_layer_color, 0, true);
-        LOG_INF("Setting enhanced layer color to %s for layer %d", color_names[led_layer_color], index);
+    set_status_led(STATUS_LAYER, led_layer_color, 0, true);
+    LOG_INF("Setting enhanced layer color to %s for layer %d", color_names[led_layer_color], index);
 #else
-        // Original implementation using message queue
-        struct blink_item color = {.color = led_layer_color};
-        LOG_INF("Setting layer color to %s for layer %d", color_names[led_layer_color], index);
-        k_msgq_put(&led_msgq, &color, K_NO_WAIT);
+    struct blink_item color = {.color = led_layer_color};
+    LOG_INF("Setting layer color to %s for layer %d", color_names[led_layer_color], index);
+    k_msgq_put(&led_msgq, &color, K_NO_WAIT);
 #endif
-    }
 }
 
 static int led_layer_color_listener_cb(const zmk_event_t *eh) {

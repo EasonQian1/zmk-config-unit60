@@ -387,6 +387,26 @@ zmk-eason60-rev_e/
 
 > 按时间倒序排列，最新修改在最上方。
 
+### 2026-09-10 彻底修复蓝牙连接提示超时后继续亮的问题
+- **问题现象**：蓝牙连接成功后蓝灯常亮配置为3秒，但实际显示超过3秒，超时后不熄灭
+- **根因分析**：`set_led_with_sharing()` 在设置LED时会把当前颜色保存为 `base_color`，3秒后 `STATUS_CONNECTIVITY` 超时，LED恢复到 `base_color`；如果此时层状态LED是黄色（FN黄灯bug），`base_color` 被保存为黄色，3秒后恢复黄色继续亮，导致实际显示时间超过配置值
+- **修复方案**：
+  - 在 `indicate_connectivity_ws2812()` 函数**开头**先调用 `ws2812_clear_status_led(STATUS_LAYER)` 清除层状态LED，确保 `base_color` 是黑色（0=灭）
+  - 函数结尾再清除层状态LED并调用 `update_layer_color()` 重新检测当前层并刷新颜色
+  - `update_layer_color()` 去掉条件判断，每次强制刷新，避免颜色残留
+- **配置确认**：蓝牙连接成功常亮 3000ms（3秒），断开慢闪 3000ms（3秒），配对呼吸 30000ms（30秒）
+- **测试验证**：编译通过，待烧录实测
+
+### 2026-09-10 彻底修复FN黄灯常亮+缩短蓝牙连接提示时间
+- **问题1**：蓝牙连接成功或切换设备后，FN层黄色依旧偶发常亮，之前的修复不彻底
+- **问题1根因**：`update_layer_color()` 函数内有条件判断 `if (led_layer_color != layer_color_idx[index])`，当层颜色残留时不触发更新；且层状态LED（`STATUS_LAYER`）可能残留之前的黄色未被清除
+- **问题1修复**：
+  - 去掉 `update_layer_color()` 内的条件判断，每次都强制调用 `set_status_led(STATUS_LAYER, ...)` 刷新
+  - 蓝牙连接指示完成后，先调用 `ws2812_clear_status_led(STATUS_LAYER)` 清除层状态LED，再调用 `update_layer_color()` 重新检测并刷新
+- **问题2**：蓝牙连接成功后蓝灯常亮时间过长（3秒）
+- **问题2修复**：`CONFIG_RGBLED_WIDGET_CONN_CONNECTED_DURATION_MS` 从 3000ms 缩短为 1500ms；断开提示也同步缩短为 1500ms
+- **测试验证**：编译通过，待烧录实测
+
 ### 2026-09-10 修复FN层黄灯偶发常亮bug
 - **问题现象**：蓝牙连接成功或切换设备（FN+E/R/T/Y/U）后，偶发出现FN层黄色常亮，需要按下FN再松开才会熄灭
 - **根因分析**：蓝牙连接事件触发Activity状态恢复（IDLE→ACTIVE）时，调用 `update_layer_color()` 刷新层颜色，此时 `zmk_keymap_highest_layer_active()` 可能瞬间返回错误值（FN层），导致 `led_layer_color` 被错误设置为FN层黄色并持续显示（`duration=0, persistent=true`）；之后无层状态变化事件触发重新更新，LED一直黄色
