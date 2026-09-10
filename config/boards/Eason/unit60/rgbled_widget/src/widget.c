@@ -564,50 +564,20 @@ static void update_all_animations(void) {
 
 // Enhanced status indication with patterns
 static int indicate_battery_enhanced(void) {
+    // 【关键修复】充电时由 charger.c 完全控制 LED（前3秒提示），widget 不写电池状态，避免两者同时写 LED 冲突闪烁
+    if (zmk_usb_is_powered()) {
+        return 0;
+    }
+
     uint8_t battery_level = get_local_battery_level();
     uint8_t color_idx = 0;
     struct animation_state pattern = {0};
     int ret = 0;
     
-    bool is_charging = zmk_usb_is_powered();
     bool is_full = (battery_level >= 99);
 
-    // 【核心修复升级】：解决持久状态（充电）切换到临时状态（充满/断开）时，底色被污染的问题
-    static bool was_charging = false;
-    static bool was_full = false;
-    
-    // 当：刚刚拔出数据线，或者 插着线但刚刚充满电 时
-    if ((!is_charging && was_charging) || (is_charging && is_full && !was_full)) {
-        uint8_t battery_led = get_primary_led_for_status(STATUS_BATTERY);
-        if (battery_led < CONFIG_RGBLED_WIDGET_LED_COUNT) {
-            // 强制将底色记忆恢复为层级底色，防止系统把“充电绿”当成背景存下来
-            led_states[battery_led].current_color = led_layer_color;
-        }
-    }
-    was_charging = is_charging;
-    was_full = is_full;
-
-    if (is_charging) {
-        color_idx = CONFIG_RGBLED_WIDGET_BATTERY_COLOR_CHARGING;
-        
-        if (is_full) {
-            // Fully charged: show the configured battery indication duration.
-            pattern.type = ANIM_STATIC;
-            pattern.start_color = color_idx;
-            LOG_INF("Battery is full (%d%%), static %s", battery_level, color_names[color_idx]);
-            ret = set_status_led(STATUS_BATTERY, color_idx,
-                                 CONFIG_RGBLED_WIDGET_BATTERY_BLINK_MS, false);
-        } else {
-            // 充电中：持久呼吸
-            pattern.type = ANIM_PULSE;
-            pattern.period_ms = 2000; 
-            pattern.start_color = color_idx;
-            LOG_INF("Battery is charging (%d%%), pulsing %s", battery_level, color_names[color_idx]);
-            ret = set_status_led(STATUS_BATTERY, color_idx, 0, true);
-        }
-    } else {
-        // Not charging: show the configured battery indication duration.
-        if (battery_level == 0) {
+    // 电池供电时：显示电量状态（高/中电量颜色设为0=黑色不显示，仅低电量<20%显示红色）
+    if (battery_level == 0) {
             color_idx = CONFIG_RGBLED_WIDGET_BATTERY_COLOR_MISSING;
             pattern.type = ANIM_BLINK;
             pattern.period_ms = 1000;
@@ -634,7 +604,6 @@ static int indicate_battery_enhanced(void) {
         LOG_INF("Enhanced battery indication: level %d%%, color %s", battery_level, color_names[color_idx]);
         ret = set_status_led(STATUS_BATTERY, color_idx,
                              CONFIG_RGBLED_WIDGET_BATTERY_BLINK_MS, false);
-    }
     
     // 下发状态到 LED 引擎
     uint8_t battery_led = get_primary_led_for_status(STATUS_BATTERY);
