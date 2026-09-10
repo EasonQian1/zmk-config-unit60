@@ -387,6 +387,15 @@ zmk-eason60-rev_e/
 
 > 按时间倒序排列，最新修改在最上方。
 
+### 2026-09-10 优化断电开关后Windows蓝牙回连稳定性
+- **问题现象**：使用键盘电源开关断电再上电后，键盘闪灯显示未连接，Windows显示已配对但实际无法回连
+- **根因分析**：键盘上电后主动回连Windows，但Windows蓝牙适配器没有在超时窗口内响应，导致回连失败，键盘进入广播模式；Windows端因显示"已配对"不会主动重新连接
+- **固件优化**：
+  - `CONFIG_BT_PERIPHERAL_PREF_TIMEOUT` 从 400（4秒）增加到 800（8秒），给Windows更多响应时间
+  - `CONFIG_BT_PERIPHERAL_PREF_LATENCY` 从 2 增加到 4，降低连接维护频率，减少丢包
+- **Windows端操作建议**：删除设备重新配对、确保"自动连接"开启、重启Bluetooth Support Service
+- **测试验证**：编译通过，待烧录实测断电开关后回连稳定性
+
 ### 2026-09-10 彻底修复蓝牙连接提示超时后继续亮的问题
 - **问题现象**：蓝牙连接成功后蓝灯常亮配置为3秒，但实际显示超过3秒，超时后不熄灭
 - **根因分析**：`set_led_with_sharing()` 在设置LED时会把当前颜色保存为 `base_color`，3秒后 `STATUS_CONNECTIVITY` 超时，LED恢复到 `base_color`；如果此时层状态LED是黄色（FN黄灯bug），`base_color` 被保存为黄色，3秒后恢复黄色继续亮，导致实际显示时间超过配置值
