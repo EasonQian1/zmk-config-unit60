@@ -56,6 +56,28 @@ CONFIG_UART_LINE_CTRL=y
 CONFIG_ZMK_SLEEP=y
 CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=1800000
 
+# === Bluetooth Performance Tuning (performance first, higher power) ===
+# Max TX power: nRF52840 supports -40 to +8 dBm, 8 = max
+CONFIG_BT_CTLR_TX_PWR=8
+
+# Low latency connection parameters (units: interval = 1.25ms, timeout = 10ms)
+# Default ZMK: min=12 max=24 latency=0 timeout=200 (15-30ms interval)
+# Performance: min=6 max=12 latency=0 timeout=200 (7.5-15ms interval)
+CONFIG_BT_PERIPHERAL_PREF_MIN_INTERVAL=6
+CONFIG_BT_PERIPHERAL_PREF_MAX_INTERVAL=12
+CONFIG_BT_PERIPHERAL_PREF_SLAVE_LATENCY=0
+CONFIG_BT_PERIPHERAL_PREF_TIMEOUT=200
+
+# 2M PHY for higher throughput and lower latency (nRF52840 + modern devices support)
+CONFIG_BT_CTLR_PHY_2M=y
+CONFIG_BT_PHY_UPDATE=y
+
+# Data length update for larger packets, lower per-byte latency
+CONFIG_BT_DATA_LEN_UPDATE=y
+
+# Advanced controller features
+CONFIG_BT_CTLR_ADVANCED_FEATURES=y
+
 # === WS2812 RGB LED Widget (single LED, all status sharing) ===
 # Module: https://github.com/hitsmaxft/zmk-rgbled-widget (WS2812-enabled fork)
 # Status plan: 蓝=蓝牙 / 绿=正常态 / 红=警告充电 / 黄=FN层 / 白=Caps
