@@ -10,6 +10,11 @@ CONFIG_FLASH_MAP=y
 # Enable MPU
 CONFIG_ARM_MPU=y
 
+# Settings save debounce: reduce from default 60s to 5s
+# Fix: bluetooth profile not saved after power switch, need to manually switch after power-on
+# Default 60s means profile selection only saved after 60s, power-off before that loses the selection
+CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE=5000
+
 # Enable GPIO
 CONFIG_GPIO=y
 
