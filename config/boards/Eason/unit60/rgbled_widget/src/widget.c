@@ -72,6 +72,11 @@ static void update_led_animation(uint8_t led_index);
 static void check_shared_led_timeouts(void);
 static void schedule_led_update(void);
 
+#if SHOW_LAYER_COLORS
+// 前向声明：层颜色刷新函数，用于蓝牙连接/切换设备后强制刷新层状态，修复偶发FN黄灯常亮bug
+void update_layer_color(void);
+#endif
+
 // Enhanced priority system
 enum status_priority {
     PRIORITY_CRITICAL_BATTERY = 0,  // Highest - never shareable
@@ -693,7 +698,14 @@ switch (profile_index) {
     if (ret == 0 && conn_led < CONFIG_RGBLED_WIDGET_LED_COUNT) {
         set_led_pattern(conn_led, &pattern);
     }
-    
+
+    // 【关键修复】蓝牙连接/切换设备后强制刷新层颜色，避免偶发FN层黄灯常亮bug
+    // 根因：连接事件触发Activity恢复时，zmk_keymap_highest_layer_active()可能瞬间返回错误值，导致led_layer_color被错误设置为FN层黄色
+    // 修复：连接指示完成后主动调用update_layer_color()，重新检测当前层并刷新颜色
+#if SHOW_LAYER_COLORS
+    update_layer_color();
+#endif
+
     return ret;
 }
 

@@ -387,12 +387,22 @@ zmk-eason60-rev_e/
 
 > 按时间倒序排列，最新修改在最上方。
 
+### 2026-09-10 修复FN层黄灯偶发常亮bug
+- **问题现象**：蓝牙连接成功或切换设备（FN+E/R/T/Y/U）后，偶发出现FN层黄色常亮，需要按下FN再松开才会熄灭
+- **根因分析**：蓝牙连接事件触发Activity状态恢复（IDLE→ACTIVE）时，调用 `update_layer_color()` 刷新层颜色，此时 `zmk_keymap_highest_layer_active()` 可能瞬间返回错误值（FN层），导致 `led_layer_color` 被错误设置为FN层黄色并持续显示（`duration=0, persistent=true`）；之后无层状态变化事件触发重新更新，LED一直黄色
+- **修复方案**：在 `indicate_connectivity_ws2812()` 函数结尾主动调用 `update_layer_color()`，蓝牙连接指示完成后强制刷新层颜色，确保不依赖层状态变化事件
+- **代码修改**：
+  - 前向声明：添加 `void update_layer_color(void)`（`#if SHOW_LAYER_COLORS` 包裹）
+  - 连接指示函数结尾：添加 `update_layer_color()` 调用（`#if SHOW_LAYER_COLORS` 包裹）
+- **测试验证**：编译通过，待烧录实测蓝牙连接/切换设备后是否还会偶发黄灯常亮
+
 ### 2026-09-10 实验性WS2812重新定义（单灯逻辑重构）
 - **核心修复**：解决充电时 charger.c 与 widget.c 同时写 LED 导致的冲突闪烁问题
 - **按场景划分**：插线充电时 charger.c 完全控制（前3秒提示），widget.c 充电时不写电池状态；电池供电时 widget.c 完全控制
 - **插线充电逻辑**：充电中🟠橙色慢闪1Hz 3秒→熄灭；充满🟢绿色常亮 3秒→熄灭；3秒后 charger 停写，LED 保持熄灭
 - **电池供电逻辑**：上电电池状态闪烁2秒（仅低电量可见）→蓝牙配对🔵呼吸30秒→已连接🔵常亮3秒→断开🔵慢闪3秒→FN层🟡常亮→Caps⚪常亮→低电量<20%🔴红色
 - **widget.c 修改**：`indicate_battery_enhanced()` 函数开头添加充电检测，USB 供电时直接返回不写 LED，删除原充电中持续呼吸逻辑
+- **FN黄灯偶发常亮bug修复**：`indicate_connectivity_ws2812()` 函数结尾添加 `update_layer_color()` 调用，蓝牙连接/切换设备后强制刷新层颜色；根因是连接事件触发Activity恢复时 `zmk_keymap_highest_layer_active()` 可能瞬间返回错误值，导致 `led_layer_color` 被错误设置为FN层黄色
 - **优先级规则**：FN层/Caps（持续显示）> 蓝牙配对/连接/断开（临时3秒）> 低电量警告（间歇）> 上电电池状态（2秒）
 - 注意：实验性重构，需实际测试验证各状态是否正常显示
 
