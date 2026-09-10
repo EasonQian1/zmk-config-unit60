@@ -387,14 +387,14 @@ zmk-eason60-rev_e/
 
 > 按时间倒序排列，最新修改在最上方。
 
-### 2026-09-10 蓝牙性能优化（性能优先）
-- **发射功率**：`CONFIG_BT_CTLR_TX_PWR_PLUS_8=y`（nRF52840 最大值 +8 dBm，默认 0 dBm，choice 类型配置）
-- **低延迟连接参数**：连接间隔 7.5-15ms（`BT_PERIPHERAL_PREF_MIN_INT=6`, `BT_PERIPHERAL_PREF_MAX_INT=12`, `BT_PERIPHERAL_PREF_LATENCY=0`）
-- **2M PHY**：启用 2Mbps 蓝牙 PHY，吞吐翻倍，空口时间减半（`BT_CTLR_PHY_2M=y`, `BT_PHY_UPDATE=y`）
-- **数据长度更新**：支持更大数据包，降低每字节延迟（`BT_DATA_LEN_UPDATE=y`）
-- **高级控制器功能**：启用 `BT_CTLR_ADVANCED_FEATURES=y`
-- **Kconfig 符号名修复**：修正 4 个错误的符号名（`BT_CTLR_TX_PWR=8`→`BT_CTLR_TX_PWR_PLUS_8=y`，`*_PREF_MIN_INTERVAL`→`*_PREF_MIN_INT`，`*_PREF_MAX_INTERVAL`→`*_PREF_MAX_INT`，`*_PREF_SLAVE_LATENCY`→`*_PREF_LATENCY`）
-- 注意：性能优先，功耗会增加，电池续航会缩短
+### 2026-09-10 蓝牙与电源优化（Windows 兼容性优先）
+- **实验连接优化**：启用 `CONFIG_ZMK_BLE_EXPERIMENTAL_CONN=y`，自动禁用 2M PHY，修复 Windows Realtek/Intel 握手 bug
+- **关闭深度睡眠**：`CONFIG_ZMK_SLEEP=n`，`CONFIG_ZMK_IDLE_TIMEOUT=60000`，持续广播，解决 30 分钟休眠后 Windows 无法回连问题（核心修复）
+- **BLE 基础参数**：兼容性优先，`MIN_INT=12`, `MAX_INT=24`, `LATENCY=2`, `TIMEOUT=400`, `TX_PWR_PLUS_8=y`（回退低延迟参数，Windows 稳定回连）
+- **修复 Windows 电池通知 GATT 报错**：`CONFIG_BT_GATT_ENFORCE_SUBSCRIPTION=n`
+- **kscan 轮询**：`CONFIG_ZMK_KSCAN_MATRIX_POLLING=y`，降低矩阵扫描噪声
+- **移除**：2M PHY、数据长度更新、低延迟连接参数（7.5-15ms）、30 分钟深度休眠
+- 注意：关闭深度睡眠会增加功耗，缩短电池续航，但换取 Windows 稳定回连
 
 ### 2026-09-09 本地化 rgbled_widget + API 修复 + Kconfig 合并
 - 将 hitsmaxft/zmk-rgbled-widget 源码本地化到 `config/boards/Eason/unit60/rgbled_widget/`

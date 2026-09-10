@@ -52,31 +52,26 @@ CONFIG_SERIAL=y
 CONFIG_UART_INTERRUPT_DRIVEN=y
 CONFIG_UART_LINE_CTRL=y
 
-# Enable sleep, default set to 30 min (defined in ms)
-CONFIG_ZMK_SLEEP=y
-CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=1800000
+# === Bluetooth & Power Optimization (Windows compatibility first) ===
+# 实验连接优化，自动禁用2M PHY，修复Windows Realtek/Intel握手bug
+CONFIG_ZMK_BLE_EXPERIMENTAL_CONN=y
 
-# === Bluetooth Performance Tuning (performance first, higher power) ===
-# Max TX power: nRF52840 supports -40 to +8 dBm, PLUS_8 = max +8 dBm
+# 关闭深度睡眠（核心，持续广播，解决休眠后Windows无法回连问题）
+CONFIG_ZMK_SLEEP=n
+CONFIG_ZMK_IDLE_TIMEOUT=60000
+
+# BLE基础参数（兼容性优先，Windows稳定回连）
+CONFIG_BT_PERIPHERAL_PREF_MIN_INT=12
+CONFIG_BT_PERIPHERAL_PREF_MAX_INT=24
+CONFIG_BT_PERIPHERAL_PREF_LATENCY=2
+CONFIG_BT_PERIPHERAL_PREF_TIMEOUT=400
 CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 
-# Low latency connection parameters (units: interval = 1.25ms, timeout = 10ms)
-# Default ZMK: min=6 max=12 latency=0 timeout=200 (7.5-15ms interval)
-# Performance: min=6 max=12 latency=0 timeout=200 (explicit low latency)
-CONFIG_BT_PERIPHERAL_PREF_MIN_INT=6
-CONFIG_BT_PERIPHERAL_PREF_MAX_INT=12
-CONFIG_BT_PERIPHERAL_PREF_LATENCY=0
-CONFIG_BT_PERIPHERAL_PREF_TIMEOUT=200
+# 修复Windows电池通知GATT报错
+CONFIG_BT_GATT_ENFORCE_SUBSCRIPTION=n
 
-# 2M PHY for higher throughput and lower latency (nRF52840 + modern devices support)
-CONFIG_BT_CTLR_PHY_2M=y
-CONFIG_BT_PHY_UPDATE=y
-
-# Data length update for larger packets, lower per-byte latency
-CONFIG_BT_DATA_LEN_UPDATE=y
-
-# Advanced controller features
-CONFIG_BT_CTLR_ADVANCED_FEATURES=y
+# kscan轮询，降低矩阵扫描噪声
+CONFIG_ZMK_KSCAN_MATRIX_POLLING=y
 
 # === WS2812 RGB LED Widget (single LED, all status sharing) ===
 # Module: https://github.com/hitsmaxft/zmk-rgbled-widget (WS2812-enabled fork)
