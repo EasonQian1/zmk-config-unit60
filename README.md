@@ -388,11 +388,12 @@ zmk-eason60-rev_e/
 > 按时间倒序排列，最新修改在最上方。
 
 ### 2026-09-10 蓝牙性能优化（性能优先）
-- **发射功率**：`CONFIG_BT_CTLR_TX_PWR=8`（nRF52840 最大值 +8 dBm，默认 0 dBm）
-- **低延迟连接参数**：连接间隔从 15-30ms 降低到 7.5-15ms（`MIN_INTERVAL=6`, `MAX_INTERVAL=12`）
-- **2M PHY**：启用 2Mbps 蓝牙 PHY，吞吐翻倍，空口时间减半
-- **数据长度更新**：支持更大数据包，降低每字节延迟
-- **高级控制器功能**：启用 `BT_CTLR_ADVANCED_FEATURES`
+- **发射功率**：`CONFIG_BT_CTLR_TX_PWR_PLUS_8=y`（nRF52840 最大值 +8 dBm，默认 0 dBm，choice 类型配置）
+- **低延迟连接参数**：连接间隔 7.5-15ms（`BT_PERIPHERAL_PREF_MIN_INT=6`, `BT_PERIPHERAL_PREF_MAX_INT=12`, `BT_PERIPHERAL_PREF_LATENCY=0`）
+- **2M PHY**：启用 2Mbps 蓝牙 PHY，吞吐翻倍，空口时间减半（`BT_CTLR_PHY_2M=y`, `BT_PHY_UPDATE=y`）
+- **数据长度更新**：支持更大数据包，降低每字节延迟（`BT_DATA_LEN_UPDATE=y`）
+- **高级控制器功能**：启用 `BT_CTLR_ADVANCED_FEATURES=y`
+- **Kconfig 符号名修复**：修正 4 个错误的符号名（`BT_CTLR_TX_PWR=8`→`BT_CTLR_TX_PWR_PLUS_8=y`，`*_PREF_MIN_INTERVAL`→`*_PREF_MIN_INT`，`*_PREF_MAX_INTERVAL`→`*_PREF_MAX_INT`，`*_PREF_SLAVE_LATENCY`→`*_PREF_LATENCY`）
 - 注意：性能优先，功耗会增加，电池续航会缩短
 
 ### 2026-09-09 本地化 rgbled_widget + API 修复 + Kconfig 合并

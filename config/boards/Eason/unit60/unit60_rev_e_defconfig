@@ -57,15 +57,15 @@ CONFIG_ZMK_SLEEP=y
 CONFIG_ZMK_IDLE_SLEEP_TIMEOUT=1800000
 
 # === Bluetooth Performance Tuning (performance first, higher power) ===
-# Max TX power: nRF52840 supports -40 to +8 dBm, 8 = max
-CONFIG_BT_CTLR_TX_PWR=8
+# Max TX power: nRF52840 supports -40 to +8 dBm, PLUS_8 = max +8 dBm
+CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 
 # Low latency connection parameters (units: interval = 1.25ms, timeout = 10ms)
-# Default ZMK: min=12 max=24 latency=0 timeout=200 (15-30ms interval)
-# Performance: min=6 max=12 latency=0 timeout=200 (7.5-15ms interval)
-CONFIG_BT_PERIPHERAL_PREF_MIN_INTERVAL=6
-CONFIG_BT_PERIPHERAL_PREF_MAX_INTERVAL=12
-CONFIG_BT_PERIPHERAL_PREF_SLAVE_LATENCY=0
+# Default ZMK: min=6 max=12 latency=0 timeout=200 (7.5-15ms interval)
+# Performance: min=6 max=12 latency=0 timeout=200 (explicit low latency)
+CONFIG_BT_PERIPHERAL_PREF_MIN_INT=6
+CONFIG_BT_PERIPHERAL_PREF_MAX_INT=12
+CONFIG_BT_PERIPHERAL_PREF_LATENCY=0
 CONFIG_BT_PERIPHERAL_PREF_TIMEOUT=200
 
 # 2M PHY for higher throughput and lower latency (nRF52840 + modern devices support)
