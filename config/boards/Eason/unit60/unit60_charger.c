@@ -34,20 +34,18 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/led_strip.h>
 #include <zephyr/logging/log.h>
+#include <zmk/usb.h>
 
-/* nRF52840 USBD USBREGSTATUS register - hardware VBUS detection.
- * Bit 0 (VBUSDETECT): 1 = VBUS present (USB cable plugged in).
- * No Zephyr USB API dependency, works on Zephyr 4.x.
+/* USB 供电检测：改用 ZMK 官方 API zmk_usb_is_powered()，
+ * 与 rgbled_widget/widget.c 使用同一套检测，确保插线事件能被可靠识别。
+ *
+ * 背景：此前直接裸读 nRF52840 USBD_USBREGSTATUS 寄存器 bit0(VBUSDETECT)
+ * 来判 VBUS，但该寄存器依赖 USB 外设电源域激活，在充电供电场景下往往读不到
+ * VBUS，导致插线事件永不触发、充电橙色/绿色提示"插上去不亮"。
  */
-#define NRF_USBD_BASE            0x40027000UL
-#define USBD_USBREGSTATUS_OFF    0x438UL
-#define USBD_USBREGSTATUS        (*(volatile uint32_t *)(NRF_USBD_BASE + USBD_USBREGSTATUS_OFF))
-#define USBD_VBUSDETECT_Pos      0
-#define USBD_VBUSDETECT_Msk      (1UL << USBD_VBUSDETECT_Pos)
-
 static bool usb_vbus_present(void)
 {
-	return (USBD_USBREGSTATUS & USBD_VBUSDETECT_Msk) != 0;
+	return zmk_usb_is_powered();
 }
 
 LOG_MODULE_REGISTER(unit60_charger, LOG_LEVEL_INF);

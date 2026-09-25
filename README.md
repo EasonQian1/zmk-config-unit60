@@ -86,7 +86,7 @@
 ### 二、插线提示（unit60_charger.c 控制，仅插线后 3 秒）
 
 #### 触发条件
-检测到 **USB 插入事件**（VBUS 从无到有），通过 nRF52840 硬件寄存器 `USBREGSTATUS` bit0 检测，不依赖任何 Zephyr USB API。
+检测到 **USB 插入事件**（VBUS 从无到有），通过 ZMK 官方 API `zmk_usb_is_powered()` 检测（与 rgbled_widget 同一套通道，可靠识别插线；此前裸读 nRF52840 `USBREGSTATUS` 寄存器在充电供电场景下读不到 VBUS，导致插线提示不触发）。
 
 #### 两种状态
 
@@ -311,7 +311,7 @@ zmk-eason60-rev_e/
 ### 1. unit60_charger.c（BQ24075 充电检测）
 
 - 读取 P1.13（BQ24075 CHG，开漏低有效，内部上拉）
-- VBUS 检测使用 nRF52840 硬件寄存器 `USBREGSTATUS`（不依赖 Zephyr USB API）
+- VBUS 检测使用 ZMK 官方 API `zmk_usb_is_powered()`（与 widget 同一套通道；此前硬件寄存器方案读不到 VBUS 导致插线提示不亮）
 - 插线后 3 秒内写 LED（充电中橙色慢闪 / 充满绿色常亮），之后完全停写归还 widget
 - 拔线立即停写
 
