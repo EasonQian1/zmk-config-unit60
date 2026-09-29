@@ -590,9 +590,10 @@ static int indicate_battery_enhanced(void) {
             pattern.end_color = 0; // Black
         } else if (battery_level <= CONFIG_RGBLED_WIDGET_BATTERY_LEVEL_CRITICAL) {
             color_idx = CONFIG_RGBLED_WIDGET_BATTERY_COLOR_CRITICAL;
-            pattern.type = ANIM_PULSE;
-            pattern.period_ms = 2000;
+            pattern.type = ANIM_BLINK;
+            pattern.period_ms = 400; /* 缺电临界：红色快闪 */
             pattern.start_color = color_idx;
+            pattern.end_color = 0;
         } else if (battery_level >= CONFIG_RGBLED_WIDGET_BATTERY_LEVEL_HIGH) {
             color_idx = CONFIG_RGBLED_WIDGET_BATTERY_COLOR_HIGH;
             pattern.type = ANIM_STATIC;
@@ -603,8 +604,10 @@ static int indicate_battery_enhanced(void) {
             pattern.start_color = color_idx;
         } else {
             color_idx = CONFIG_RGBLED_WIDGET_BATTERY_COLOR_LOW;
-            pattern.type = ANIM_STATIC;
+            pattern.type = ANIM_BLINK;
+            pattern.period_ms = 400; /* 缺电：红色快闪 */
             pattern.start_color = color_idx;
+            pattern.end_color = 0;
         }
         LOG_INF("Enhanced battery indication: level %d%%, color %s", battery_level, color_names[color_idx]);
         ret = set_status_led(STATUS_BATTERY, color_idx,

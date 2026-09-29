@@ -13,7 +13,7 @@
  *
  *   USB plug-in event (transition no-USB -> USB):
  *     If charging (CHG=low):
- *       Orange slow blink (1Hz) for 3s -> "charging"
+ *       Red slow blink (1Hz) for 3s -> "charging"
  *       Then off, charger stops writing LED, widget takes over.
  *     If full (CHG=high):
  *       Green solid for 3s -> "full / USB connected"
@@ -64,7 +64,7 @@ static const struct device *led_strip;
 /* ---- Simple state machine ---- */
 enum charger_state {
 	STATE_IDLE,             /* charger not writing LED, widget controls */
-	STATE_CHARGING_ORANGE,  /* orange slow blink = charging (3s after plug-in) */
+	STATE_CHARGING,          /* red slow blink = charging (3s after plug-in) */
 	STATE_FULL_GREEN,        /* green solid = full / USB connected (3s after plug-in) */
 };
 
@@ -117,10 +117,10 @@ static void charger_work_handler(struct k_work *work)
 			val, chg_active ? "yes" : "no");
 
 		if (chg_active) {
-			/* Battery charging: orange blink 3s */
-			current_state = STATE_CHARGING_ORANGE;
+			/* Battery charging: red blink 3s */
+			current_state = STATE_CHARGING;
 			state_ticks = 0;
-			LOG_INF("Indicator: charging orange blink (3s)");
+			LOG_INF("Indicator: charging red blink (3s)");
 		} else {
 			/* Battery full / USB only: green solid 3s */
 			current_state = STATE_FULL_GREEN;
@@ -139,10 +139,10 @@ static void charger_work_handler(struct k_work *work)
 
 	/* ---- State machine (charger only writes LED during 3s indicator) ---- */
 	switch (current_state) {
-	case STATE_CHARGING_ORANGE:
-		/* Orange slow blink (1Hz) for 3 seconds = charging */
+	case STATE_CHARGING:
+		/* Red slow blink (1Hz) for 3 seconds = charging */
 		if ((state_ticks % (BLINK_HALF_PERIOD * 2)) < BLINK_HALF_PERIOD) {
-			set_led_color(255, 140, 0); /* orange */
+			set_led_color(255, 0, 0); /* red */
 		} else {
 			set_led_color(0, 0, 0);     /* off */
 		}
